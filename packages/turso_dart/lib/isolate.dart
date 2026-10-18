@@ -50,13 +50,34 @@ class Database with _Sender {
     _commandPort = port;
   }
 
+  bool _isDisposed = false;
+
   Future<Connection> connect() async {
+    _ensureNotDisposed();
     await _sendCmd(_DbConnectCmd.new);
     return Connection._(_commandPort);
   }
 
-  Future<bool> pull() => _sendCmd(_DbPullCmd.new);
-  Future<void> push() => _sendCmd(_DbPushCmd.new);
+  Future<bool> pull() {
+    _ensureNotDisposed();
+    return _sendCmd(_DbPullCmd.new);
+  }
+
+  Future<void> push() {
+    _ensureNotDisposed();
+    return _sendCmd(_DbPushCmd.new);
+  }
+
+  /// Closes the database isolate and releases its native resources.
+  Future<void> dispose() async {
+    if (_isDisposed) return;
+    await _sendCmd(_DbDisposeCmd.new);
+    _isDisposed = true;
+  }
+
+  void _ensureNotDisposed() {
+    if (_isDisposed) throw StateError('Database has been disposed.');
+  }
 }
 
 class Connection with _Sender {
@@ -173,6 +194,12 @@ class _DbPushCmd implements _IsolateCmd {
   final SendPort replyPort;
 }
 
+class _DbDisposeCmd implements _IsolateCmd {
+  _DbDisposeCmd(this.replyPort);
+  @override
+  final SendPort replyPort;
+}
+
 class _ConnQueryCmd implements _IsolateCmd {
   _ConnQueryCmd(this.replyPort, this.sql, this.params);
   @override
@@ -279,6 +306,16 @@ void _tursoWorkerIsolate(SendPort initReplyPort) {
         case _DbPushCmd _:
           db!.push();
           reply.send(true);
+        case _DbDisposeCmd _:
+          for (final transaction in transactions.values) {
+            transaction.rollback();
+          }
+          transactions.clear();
+          statements.clear();
+          conn = null;
+          db = null;
+          reply.send(true);
+          commandPort.close();
 
         case final _ConnQueryCmd cmd:
           reply.send(conn!.query(cmd.sql, params: cmd.params));
