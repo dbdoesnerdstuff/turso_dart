@@ -57,6 +57,7 @@ class SyncDbConfig {
     this.longPollTimeout,
     this.bootstrapIfEmpty = false,
     this.experimentalIndexMethod = false,
+    this.logicalMvccPull,
   });
 
   String path;
@@ -67,6 +68,9 @@ class SyncDbConfig {
   bool bootstrapIfEmpty;
   bool experimentalIndexMethod;
 
+  /// Overrides automatic pull protocol detection when non-null.
+  bool? logicalMvccPull;
+
   Map<String, dynamic> toJson() => {
     'path': path,
     'remote_url': remoteUrl,
@@ -76,5 +80,6 @@ class SyncDbConfig {
       'long_poll_timeout': longPollTimeout?.inMilliseconds,
     'bootstrap_if_empty': bootstrapIfEmpty,
     'experimental_index_method': experimentalIndexMethod,
+    if (logicalMvccPull != null) 'logical_mvcc_pull': logicalMvccPull,
   };
 }

@@ -40,9 +40,15 @@ impl LocalDb {
                 experimental_features: features,
                 async_io: true,
                 encryption: encryption,
-                vfs: config.vfs.clone(),
+                vfs: config
+                    .vfs
+                    .as_deref()
+                    .map(|value| turso_sdk_kit::IoBackend::Other(value.to_string()))
+                    .unwrap_or_default(),
                 io: None,
                 db_file: None,
+                page_codec: None,
+                open_flags: Default::default(),
             });
         while let Some(io_c) = db.open()?.io() {
             // At this point IO must already be created

@@ -98,9 +98,11 @@ impl SyncDb {
             // IMPORTANT: async IO must be turned on to delegate IO to this layer.
             async_io: true,
             encryption: None,
-            vfs: None,
+            vfs: turso_sdk_kit::IoBackend::Default,
             io: None,
             db_file: None,
+            page_codec: None,
+            open_flags: Default::default(),
         };
 
         let url = if let Some(remote_url) = &config.remote_url {
@@ -131,6 +133,7 @@ impl SyncDb {
             remote_encryption_key: config.remote_encryption_key.clone(),
             push_operations_threshold: None,
             pull_bytes_threshold: None,
+            logical_mvcc_pull: config.logical_mvcc_pull,
         };
 
         // Create sync wrapper.
@@ -177,6 +180,7 @@ pub struct SyncDbConfig {
     // `experimental_index_method` flag so synced databases can use the
     // same SQL surface as their local-only counterparts.
     experimental_index_method: bool,
+    logical_mvcc_pull: Option<bool>,
 }
 
 impl Database for SyncDb {
